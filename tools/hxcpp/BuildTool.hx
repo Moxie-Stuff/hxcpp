@@ -2079,7 +2079,7 @@ class BuildTool
                defines.set("HXCPP_ARM64","1");
                m64 = true;
             }
-            defines.set("BINDIR", m64 ? "Linux64":"Linux");
+            defines.set("BINDIR", arm64 ? "LinuxArm64" : !arm64 ? "LinuxArm" : m64 ? "Linux64":"Linux");
          }
       }
       else if ( (new EReg("mac","i")).match(os) )
@@ -2411,7 +2411,7 @@ class BuildTool
       if (isArm64)
       {
          outDefines.set("HXCPP_ARM64","1");
-         outDefines.set("HXCPP_M64","1");
+         outDefines.remove("HXCPP_M64");
          outDefines.remove("HXCPP_32");
       }
       else if (in64)
