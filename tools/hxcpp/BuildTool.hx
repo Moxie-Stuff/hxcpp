@@ -66,6 +66,7 @@ class BuildTool
    var mNvccLinkFlags:Array<String>;
    var mDirtyList:Array<String>;
    var arm64:Bool;
+   var armv7:Bool;
    var m64:Bool;
    var m32:Bool;
 
@@ -134,8 +135,9 @@ class BuildTool
       m64 = mDefines.exists("HXCPP_M64");
       m32 = mDefines.exists("HXCPP_M32");
       arm64 = mDefines.exists("HXCPP_ARM64");
-      var otherArmArchitecture = mDefines.exists("HXCPP_ARMV6") || mDefines.exists("HXCPP_ARMV7") || mDefines.exists("HXCPP_ARMV7S");
-      if (m64==m32 && !arm64 && !otherArmArchitecture)
+      armv7 = mDefines.exists("HXCPP_ARMV7");
+      var otherArmArchitecture = mDefines.exists("HXCPP_ARMV6") || mDefines.exists("HXCPP_ARMV7S");
+      if (m64==m32 && !arm64 && !armv7 && !otherArmArchitecture)
       {
          var arch = mDefines.get("HXCPP_ARCH");
          if (arch!=null)
@@ -143,6 +145,7 @@ class BuildTool
             m64 = arch=="x86_64";
             m32 = arch=="x86";
             arm64 = arch=="arm64";
+            armv7 = arch=="armv7";
          }
          else
          {
@@ -152,6 +155,7 @@ class BuildTool
             m64 = hostArch=="m64";
             m32 = hostArch=="m32";
             arm64 = hostArch=="arm64";
+            armv7 = hostArch=="armv7";
          }
 
          mDefines.remove(m32 ? "HXCPP_M64" : "HXCPP_M32");
@@ -576,7 +580,7 @@ class BuildTool
                   first = false;
                   Log.lock();
                   Log.println("");
-                  Log.info("\x1b[33;1mCompiling group: " + group.mId + " (" + to_be_compiled.length + " file" + (to_be_compiled.length==1 ? "" : "s") + ")\x1b[0m");
+                  Log.info("\x1b[33;1mCompiling group: " + group.mId + "\x1b[0m");
                   var message = "\x1b[1m" + (nvcc ? getNvcc() : mCompiler.mExe) + "\x1b[0m";
                   var flags = group.mCompilerFlags;
                   if (!nvcc)
@@ -612,15 +616,10 @@ class BuildTool
          } : null;
 
          Profile.push("compile");
-
-         var compile_progress = null;
-         if (!Log.verbose)
-            compile_progress = new Progress(0,to_be_compiled.length);
-
          if (threadPool==null)
          {
             for(file in to_be_compiled)
-               mCompiler.compile(file,-1,groupHeader,pchStamp,compile_progress);
+               mCompiler.compile(file,-1,groupHeader,pchStamp);
          }
          else
          {
@@ -636,7 +635,7 @@ class BuildTool
                         break;
                      var file = to_be_compiled[index];
 
-                     compiler.compile(file,threadId,groupHeader,pchStamp,compile_progress);
+                     compiler.compile(file,threadId,groupHeader,pchStamp);
                   }
             });
          }
@@ -2065,21 +2064,21 @@ class BuildTool
             defines.set("toolchain","linux");
             defines.set("linux","linux");
 
-            if (defines.exists("HXCPP_LINUX_ARMV7"))
+            if (armv7)
             {
                defines.set("noM32","1");
                defines.set("noM64","1");
                defines.set("HXCPP_ARMV7","1");
                m64 = false;
             }
-            else if (arm64 || defines.exists("HXCPP_LINUX_ARM64"))
+            else if (arm64)
             {
                defines.set("noM32","1");
                defines.set("noM64","1");
                defines.set("HXCPP_ARM64","1");
                m64 = true;
             }
-            defines.set("BINDIR", arm64 ? "LinuxArm64" : m64 ? "Linux64" : "Linux");
+            defines.set("BINDIR", arm64 ? "LinuxArm64" : armv7 ? "LinuxArm" : m64 ? "Linux64" : "Linux");
          }
       }
       else if ( (new EReg("mac","i")).match(os) )
@@ -2411,7 +2410,7 @@ class BuildTool
       if (isArm64)
       {
          outDefines.set("HXCPP_ARM64","1");
-         outDefines.remove("HXCPP_M64");
+         outDefines.set("HXCPP_M64","1");
          outDefines.remove("HXCPP_32");
       }
       else if (in64)
