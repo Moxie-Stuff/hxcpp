@@ -1,5 +1,4 @@
 <xml>
- <set name="HXCPP_NO_M32" if="HXCPP_ARMV7" />
  <flag value="-DHXCPP_DEBUG" if="debug" />
  <flag value="-DSTATIC_LINK" if="static_link" tag="static" />
  <flag value="-DHXCPP_EXE_LINK" if="exe_link" tag="static" />
